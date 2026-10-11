@@ -1,0 +1,152 @@
+-- ============================================================================
+-- CINEARCHIVE - COMPLETE TABLE CREATION QUERIES (PostgreSQL / pgAdmin Compatible)
+-- ============================================================================
+
+-- 1. USERS TABLE
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(50) PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    role VARCHAR(20) DEFAULT 'User' CHECK (role IN ('User', 'Admin')),
+    joined_date DATE DEFAULT CURRENT_DATE,
+    bio TEXT,
+    password_hash VARCHAR(255),
+    last_login TIMESTAMP
+);
+
+-- 2. DIRECTORS TABLE
+CREATE TABLE IF NOT EXISTS directors (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    birth_year INT CHECK (birth_year > 1800),
+    bio TEXT
+);
+
+-- 3. ACTORS TABLE
+CREATE TABLE IF NOT EXISTS actors (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    birth_year INT CHECK (birth_year > 1800),
+    bio TEXT
+);
+
+-- 4. GENRES TABLE
+CREATE TABLE IF NOT EXISTS genres (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- 5. MOVIES TABLE
+CREATE TABLE IF NOT EXISTS movies (
+    id VARCHAR(50) PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    year INT NOT NULL CHECK (year BETWEEN 1888 AND 2100),
+    director_id VARCHAR(50) REFERENCES directors(id) ON DELETE SET NULL,
+    runtime INT CHECK (runtime > 0),
+    language VARCHAR(50),
+    country VARCHAR(50),
+    avg_rating DECIMAL(3,2) DEFAULT 0.00 CHECK (avg_rating BETWEEN 0.00 AND 5.00),
+    likes_count INT DEFAULT 0 CHECK (likes_count >= 0),
+    poster VARCHAR(255),
+    backdrop VARCHAR(255),
+    synopsis TEXT
+);
+
+-- 6. MOVIE_GENRES (JUNCTION TABLE)
+CREATE TABLE IF NOT EXISTS movie_genres (
+    id VARCHAR(50) PRIMARY KEY,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    genre_id VARCHAR(50) NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
+    UNIQUE (movie_id, genre_id)
+);
+
+-- 7. MOVIE_ACTORS (JUNCTION TABLE)
+CREATE TABLE IF NOT EXISTS movie_actors (
+    id VARCHAR(50) PRIMARY KEY,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    actor_id VARCHAR(50) NOT NULL REFERENCES actors(id) ON DELETE CASCADE,
+    UNIQUE (movie_id, actor_id)
+);
+
+-- 8. REVIEWS TABLE
+CREATE TABLE IF NOT EXISTS reviews (
+    id VARCHAR(50) PRIMARY KEY,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    review_text TEXT NOT NULL,
+    created_at DATE DEFAULT CURRENT_DATE,
+    likes_count INT DEFAULT 0 CHECK (likes_count >= 0)
+);
+
+-- 9. RATINGS TABLE
+CREATE TABLE IF NOT EXISTS ratings (
+    id VARCHAR(50) PRIMARY KEY,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating_value INT NOT NULL CHECK (rating_value BETWEEN 1 AND 5),
+    created_at DATE DEFAULT CURRENT_DATE,
+    UNIQUE (user_id, movie_id)
+);
+
+-- 10. WATCHLISTS TABLE
+CREATE TABLE IF NOT EXISTS watchlists (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    added_at DATE DEFAULT CURRENT_DATE,
+    UNIQUE (user_id, movie_id)
+);
+
+-- 11. LISTS TABLE
+CREATE TABLE IF NOT EXISTS lists (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    created_at DATE DEFAULT CURRENT_DATE
+);
+
+-- 12. COLLECTIONS (JUNCTION TABLE)
+CREATE TABLE IF NOT EXISTS collections (
+    id VARCHAR(50) PRIMARY KEY,
+    list_id VARCHAR(50) NOT NULL REFERENCES lists(id) ON DELETE CASCADE,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    UNIQUE (list_id, movie_id)
+);
+
+-- 13. COMMENTS TABLE
+CREATE TABLE IF NOT EXISTS comments (
+    id VARCHAR(50) PRIMARY KEY,
+    review_id VARCHAR(50) NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    comment_text TEXT NOT NULL,
+    created_at DATE DEFAULT CURRENT_DATE
+);
+
+-- 14. FOLLOWERS TABLE
+CREATE TABLE IF NOT EXISTS followers (
+    id VARCHAR(50) PRIMARY KEY,
+    follower_user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_at DATE DEFAULT CURRENT_DATE,
+    CHECK (follower_user_id <> followed_user_id),
+    UNIQUE (follower_user_id, followed_user_id)
+);
+
+-- 15. NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS notifications (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at DATE DEFAULT CURRENT_DATE
+);
+
+-- 16. AWARDS TABLE
+CREATE TABLE IF NOT EXISTS awards (
+    id VARCHAR(50) PRIMARY KEY,
+    movie_id VARCHAR(50) NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
+    name VARCHAR(200) NOT NULL,
+    category VARCHAR(200) NOT NULL,
+    year_won INT NOT NULL CHECK (year_won > 1900)
+);
